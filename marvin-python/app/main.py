@@ -68,7 +68,7 @@ class ChatApp:
         await socket.send_text(rendered)
 
 
-class StaticCacheHeaders(BaseHTTPMiddleware):
+class StaticCacheControl(BaseHTTPMiddleware):
     def __init__(self, app, is_dev):
         super().__init__(app)
         self.is_dev = is_dev
@@ -92,6 +92,6 @@ def make_app():
         Mount("/shared", StaticFiles(directory="shared")),
     ]
     middleware = [
-        Middleware(StaticCacheHeaders, is_dev=is_dev),
+        Middleware(StaticCacheControl, is_dev=is_dev),
     ]
     return Starlette(routes=routes, middleware=middleware)
