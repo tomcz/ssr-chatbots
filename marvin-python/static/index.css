@@ -8,6 +8,10 @@
   color: red;
 }
 
+h1 {
+  text-align: center;
+}
+
 #chat-messages {
   height: 400px;
   overflow-y: scroll;
