@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	log "log/slog"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"os"
@@ -29,15 +29,15 @@ import (
 var commit string
 
 func main() {
-	opts := &tint.Options{Level: log.LevelInfo, TimeFormat: time.DateTime}
-	log.SetDefault(log.New(tint.NewHandler(os.Stderr, opts)))
+	opts := &tint.Options{Level: slog.LevelInfo, TimeFormat: time.DateTime}
+	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, opts)))
 
 	listenAddr := os.Getenv("LISTEN_ADDR")
 	if listenAddr == "" {
 		listenAddr = "127.0.0.1:3000"
 	}
 	if err := runServer(listenAddr, newHandler()); err != nil {
-		log.Error("server failed", "err", err)
+		slog.Error("server failed", "err", err)
 		os.Exit(1)
 	}
 }
@@ -50,12 +50,12 @@ func runServer(listenAddr string, handler http.Handler) error {
 
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		log.Info("starting server", "addr", listenAddr)
+		slog.Info("starting server", "addr", listenAddr)
 		return server.ListenAndServe()
 	})
 	group.Go(func() error {
 		<-ctx.Done()
-		log.Info("stopping server")
+		slog.Info("stopping server")
 		timeout, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 		return server.Shutdown(timeout)
@@ -117,6 +117,7 @@ func index(w http.ResponseWriter, _ *http.Request) {
 }
 
 func chat(w http.ResponseWriter, r *http.Request) {
+	log := slog.With("chat_id", crand.Text())
 	log.Info("starting chat")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -189,7 +190,7 @@ func writeMessage(conn *websocket.Conn, message, source, resID string) error {
 func writeResponse(w http.ResponseWriter, templateFile string, templateName string, data map[string]any) {
 	text, err := render(templateFile, templateName, data)
 	if err != nil {
-		log.Error("render failed", "tmpl_file", templateFile, "tmpl_name", templateName, "err", err)
+		slog.Error("render failed", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -224,7 +225,7 @@ func render(templateFile string, templateName string, data map[string]any) (stri
 
 	err = tmpl.ExecuteTemplate(buf, templateName, data)
 	if err != nil {
-		return "", fmt.Errorf("%s exec %s failed: %w", templateFile, templateName, err)
+		return "", fmt.Errorf("%s exec %q error: %w", templateFile, templateName, err)
 	}
 	return buf.String(), nil
 }
@@ -243,18 +244,18 @@ func readTemplate(templateFile string) (*template.Template, error) {
 
 	in, err := templates.FS.Open(templateFile)
 	if err != nil {
-		return nil, fmt.Errorf("%s open failed: %w", templateFile, err)
+		return nil, fmt.Errorf("%s open error: %w", templateFile, err)
 	}
 	defer in.Close()
 
 	buf, err := io.ReadAll(in)
 	if err != nil {
-		return nil, fmt.Errorf("%s read failed: %w", templateFile, err)
+		return nil, fmt.Errorf("%s read error: %w", templateFile, err)
 	}
 
 	tmpl, err := template.New("").Parse(string(buf))
 	if err != nil {
-		return nil, fmt.Errorf("%s parse failed: %w", templateFile, err)
+		return nil, fmt.Errorf("%s parse error: %w", templateFile, err)
 	}
 
 	// nope goland, this is true for prod builds
