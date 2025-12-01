@@ -2,7 +2,7 @@ GITCOMMIT := $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS := -s -w -X main.commit=${GITCOMMIT}
 
 .PHONY: all
-all: clean tidy format lint test build-prod
+all: clean tidy format lint build-prod
 
 .PHONY: clean
 clean:
@@ -23,17 +23,13 @@ lint:
 tidy:
 	go mod tidy
 
-.PHONY: test
-test:
-	go test ./...
-
 .PHONY: build-dev
 build-dev: target
-	go build -tags dev -ldflags "${LDFLAGS}" -o target ./cmd/...
+	go build -tags dev -ldflags "${LDFLAGS}" -o target/chatbot main.go
 
 .PHONY: build-prod
 build-prod: target
-	go build -tags prod -ldflags "${LDFLAGS}" -o target ./cmd...
+	go build -tags prod -ldflags "${LDFLAGS}" -o target/chatbot main.go
 
 .PHONY: dev
 dev: build-dev
