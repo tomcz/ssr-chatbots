@@ -4,7 +4,10 @@ import secrets
 
 from jinja2 import Environment, FileSystemLoader
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -65,16 +68,41 @@ class ChatApp:
         await socket.send_text(rendered)
 
 
+class CacheHeaders(BaseHTTPMiddleware):
+    # noinspection PyShadowingNames
+    def __init__(self, app, is_dev):
+        super().__init__(app)
+        self.is_dev = is_dev
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        req_path = request.url.path
+        response = await call_next(request)
+        if req_path.startswith("/static/"):
+            if self.is_dev:
+                # don't cache dev assets, so we can work on them easily
+                response.headers["Cache-Control"] = "no-store"
+            else:
+                # non-dev assets can be cached by the browser for 10 minutes
+                response.headers["Cache-Control"] = "private, max-age=600"
+        else:
+            # don't cache dynamic content
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 def make_app():
-    auto_reload = os.getenv("ENV", "dev").lower() in ["dev", "development"]
+    is_dev = os.getenv("ENV", "dev").lower() in ["dev", "development"]
     build_version = os.getenv("BUILD_VERSION", "local")
-    chat = ChatApp(auto_reload, build_version)
+    chat = ChatApp(is_dev, build_version)
     routes = [
         Route("/", chat.index),
         WebSocketRoute("/ws/chat", chat.websocket_endpoint),
         Mount(f"/static/{build_version}", StaticFiles(directory="static")),
     ]
-    return Starlette(debug=True, routes=routes)
+    middleware = [
+        Middleware(CacheHeaders, is_dev=is_dev),
+    ]
+    return Starlette(routes=routes, middleware=middleware)
 
 
 # for uvicorn
