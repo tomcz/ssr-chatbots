@@ -23,7 +23,7 @@
 </html>
 {{- end }}
 
-{{- define "chat-input" }}
+{{ define "chat-input" -}}
   <fieldset id="chat-input-row" role="group">
     <label for="question" class="visually-hidden">Question</label>
     <input type="text"
@@ -35,9 +35,9 @@
   </fieldset>
 {{- end }}
 
-{{- define "chat-output" }}
-{{- if .ResID }}
-{{- if eq .Text "thinking" }}
+{{ define "chat-output" -}}
+{{ if .ResID -}}
+{{ if eq .Text "thinking" -}}
 <div id="chat-messages" hx-swap-oob="beforeend">
   <div class="{{ .Type }}">
     <div id="{{ .ResID }}" class="chat-message">
@@ -46,13 +46,13 @@
     </div>
   </div>
 </div>
-{{- else }}
+{{ else -}}
 <div id="{{ .ResID }}" class="chat-message" hx-swap-oob="true">
   <div class="message-source">{{ .Source }}</div>
   <div class="message-text">{{ .Text }}</div>
 </div>
-{{- end }}
-{{- else }}
+{{ end -}}
+{{ else -}}
 <div id="chat-messages" hx-swap-oob="beforeend">
 <div class="{{ .Type }}">
   <div class="chat-message">
@@ -61,10 +61,10 @@
   </div>
 </div>
 </div>
-{{- end }}
+{{ end -}}
 {{- end }}
 
-{{- define "human-output" }}
-{{ template "chat-input" . }}
-{{ template "chat-output" . }}
+{{ define "human-output" -}}
+{{- template "chat-input" . }}
+{{- template "chat-output" . }}
 {{- end }}

@@ -1,5 +1,5 @@
-{% if res_id %}
-{% if text == "thinking" %}
+{% if res_id -%}
+{% if text == "thinking" -%}
 <div id="chat-messages" hx-swap-oob="beforeend">
   <div class="{{ type }}">
     <div id="{{ res_id }}" class="chat-message">
@@ -8,13 +8,13 @@
     </div>
   </div>
 </div>
-{% else %}
+{% else -%}
 <div id="{{ res_id }}" class="chat-message" hx-swap-oob="true">
   <div class="message-source">{{ source }}</div>
   <div class="message-text">{{ text }}</div>
 </div>
-{% endif %}
-{% else %}
+{% endif -%}
+{% else -%}
 <div id="chat-messages" hx-swap-oob="beforeend">
 <div class="{{ type }}">
   <div class="chat-message">
@@ -23,4 +23,4 @@
   </div>
 </div>
 </div>
-{% endif %}
+{%- endif %}
