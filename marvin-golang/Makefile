@@ -25,11 +25,11 @@ tidy:
 
 .PHONY: build-dev
 build-dev: target
-	go build -tags dev -ldflags "${LDFLAGS}" -o target/chatbot main.go
+	go build -tags dev -ldflags "${LDFLAGS}" -o target/chatbot ./app/main.go
 
 .PHONY: build-prod
 build-prod: target
-	go build -tags prod -ldflags "${LDFLAGS}" -o target/chatbot main.go
+	go build -tags prod -ldflags "${LDFLAGS}" -o target/chatbot ./app/main.go
 
 .PHONY: dev
 dev: build-dev

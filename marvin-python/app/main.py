@@ -69,23 +69,15 @@ class ChatApp:
 
 
 class StaticCacheHeaders(BaseHTTPMiddleware):
-    # noinspection PyShadowingNames
     def __init__(self, app, is_dev):
         super().__init__(app)
         self.is_dev = is_dev
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
-        if not request.url.path.startswith("/static/"):
-            return response
-
-        if self.is_dev:
+        if self.is_dev and request.url.path.startswith("/static/"):
             # don't cache dev assets so we can work on them easily
             response.headers["Cache-Control"] = "no-store"
-            return response
-
-        # non-dev assets can be cached by the browser for 10 minutes
-        response.headers["Cache-Control"] = "private, max-age=600"
         return response
 
 
@@ -103,7 +95,3 @@ def make_app():
         Middleware(StaticCacheHeaders, is_dev=is_dev),
     ]
     return Starlette(routes=routes, middleware=middleware)
-
-
-# for uvicorn
-app = make_app()

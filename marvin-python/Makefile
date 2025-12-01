@@ -15,4 +15,4 @@ format:
 
 .PHONY: run
 run:
-	BUILD_VERSION=${GITCOMMIT} uv run uvicorn --host 127.0.0.1 --port 3000 --reload main:app
+	BUILD_VERSION=${GITCOMMIT} uv run uvicorn --host 127.0.0.1 --port 3000 --app-dir app --factory --reload main:make_app
