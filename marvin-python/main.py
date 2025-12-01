@@ -35,13 +35,13 @@ canned_responses = [
 
 class ChatApp:
     def __init__(self, auto_reload: bool, build_version: str):
-        loader = FileSystemLoader("templates")
-        self._env = Environment(loader=loader, autoescape=True, auto_reload=auto_reload)
+        self._env = Environment(loader=FileSystemLoader("templates"), autoescape=True, auto_reload=auto_reload)
         self._env.globals["version"] = build_version
         self._templates = Jinja2Templates(env=self._env)
 
     async def index(self, request: Request):
-        return self._templates.TemplateResponse(request, "index.html.j2")
+        headers = {"Cache-Control": "no-store"}
+        return self._templates.TemplateResponse(request, "index.html.j2", headers=headers)
 
     async def websocket_endpoint(self, websocket: WebSocket):
         try:
@@ -68,25 +68,24 @@ class ChatApp:
         await socket.send_text(rendered)
 
 
-class CacheHeaders(BaseHTTPMiddleware):
+class StaticCacheHeaders(BaseHTTPMiddleware):
     # noinspection PyShadowingNames
     def __init__(self, app, is_dev):
         super().__init__(app)
         self.is_dev = is_dev
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        req_path = request.url.path
         response = await call_next(request)
-        if req_path.startswith("/static/"):
-            if self.is_dev:
-                # don't cache dev assets, so we can work on them easily
-                response.headers["Cache-Control"] = "no-store"
-            else:
-                # non-dev assets can be cached by the browser for 10 minutes
-                response.headers["Cache-Control"] = "private, max-age=600"
-        else:
-            # don't cache dynamic content
+        if not request.url.path.startswith("/static/"):
+            return response
+
+        if self.is_dev:
+            # don't cache dev assets so we can work on them easily
             response.headers["Cache-Control"] = "no-store"
+            return response
+
+        # non-dev assets can be cached by the browser for 10 minutes
+        response.headers["Cache-Control"] = "private, max-age=600"
         return response
 
 
@@ -98,9 +97,10 @@ def make_app():
         Route("/", chat.index),
         WebSocketRoute("/ws/chat", chat.websocket_endpoint),
         Mount(f"/static/{build_version}", StaticFiles(directory="static")),
+        Mount("/shared", StaticFiles(directory="shared")),
     ]
     middleware = [
-        Middleware(CacheHeaders, is_dev=is_dev),
+        Middleware(StaticCacheHeaders, is_dev=is_dev),
     ]
     return Starlette(routes=routes, middleware=middleware)
 

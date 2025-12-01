@@ -20,6 +20,7 @@ import (
 	"github.com/lmittmann/tint"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/tomcz/ssr-chatbots/marvin-golang/shared"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
 )
@@ -49,7 +50,7 @@ func runServer(listenAddr string, handler http.Handler) error {
 
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		log.Info("starting server")
+		log.Info("starting server", "addr", listenAddr)
 		return server.ListenAndServe()
 	})
 	group.Go(func() error {
@@ -72,6 +73,7 @@ func newHandler() http.Handler {
 	mux.HandleFunc("/ws/chat", chat)
 	prefix := fmt.Sprintf("/static/%s/", commit)
 	mux.Handle("/static/", staticCacheControl(http.StripPrefix(prefix, http.FileServer(static.FS))))
+	mux.Handle("/shared/", http.StripPrefix("/shared/", http.FileServer(shared.FS)))
 	return mux
 }
 
