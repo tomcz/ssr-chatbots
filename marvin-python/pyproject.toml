@@ -1,7 +1,23 @@
 [project]
 name = "marvin-python"
 version = "0.1.0"
-description = "server-side-rendered chatbot in python"
+description = "Server-side-rendered chatbot in python"
 readme = "README.md"
 requires-python = "~=3.14.0"
-dependencies = []
+dependencies = [
+    "starlette[full]~=0.50.0",
+    "uvicorn[standard]~=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "isort>=7.0.0",
+    "ruff>=0.14.7",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120

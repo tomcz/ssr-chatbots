@@ -1,0 +1,26 @@
+{% if res_id %}
+{% if text == "thinking" %}
+<div id="chat-messages" hx-swap-oob="beforeend">
+  <div class="{{ type }}">
+    <div id="{{ res_id }}" class="chat-message">
+      <div class="message-source">{{ source }}</div>
+      <div class="dot-elastic"></div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div id="{{ res_id }}" class="chat-message" hx-swap-oob="true">
+  <div class="message-source">{{ source }}</div>
+  <div class="message-text">{{ text }}</div>
+</div>
+{% endif %}
+{% else %}
+<div id="chat-messages" hx-swap-oob="beforeend">
+<div class="{{ type }}">
+  <div class="chat-message">
+    <div class="message-source">{{ source }}</div>
+    <div class="message-text">{{ text }}</div>
+  </div>
+</div>
+</div>
+{% endif %}
