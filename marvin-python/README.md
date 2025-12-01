@@ -1,1 +1,1 @@
-Server-side-rendered chatbot in python.
+Server-side-rendered chatbot in python using [Starlette](https://starlette.dev/), [htmx](https://htmx.org/) (and [htmx-ext-ws](https://htmx.org/extensions/ws/)), with styles from [Pico CSS](https://picocss.com/).

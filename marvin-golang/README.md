@@ -1,1 +1,1 @@
-Server-side-rendered chatbot in golang.
+Server-side-rendered chatbot in golang using [Gorilla Websocket](https://github.com/gorilla/websocket), [htmx](https://htmx.org/) (and [htmx-ext-ws](https://htmx.org/extensions/ws/)), with styles from [Pico CSS](https://picocss.com/).
