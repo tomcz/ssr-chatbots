@@ -37,7 +37,7 @@ func main() {
 		listenAddr = "127.0.0.1:3000"
 	}
 	if err := runServer(listenAddr, newHandler()); err != nil {
-		slog.Error("server failed", "err", err)
+		slog.Error("server failed", tint.Err(err))
 		os.Exit(1)
 	}
 }
@@ -125,14 +125,14 @@ func chat(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error("ws.Upgrade", "err", err)
+		log.Error("ws.Upgrade", tint.Err(err))
 		return
 	}
 	defer conn.Close()
 
 	err = writeMessage(conn, "Hello, I am Marvin.", "bot", "")
 	if err != nil {
-		log.Error("writeMessage", "err", err)
+		log.Error("writeMessage", tint.Err(err))
 		return
 	}
 
@@ -140,27 +140,27 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		var req chatInput
 		if err = conn.ReadJSON(&req); err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				log.Info("stopping chat")
+				log.Info("stopping chat", tint.Err(err))
 				break
 			}
-			log.Error("ws.ReadJSON", "err", err)
+			log.Error("ws.ReadJSON", tint.Err(err))
 			break
 		}
 		if err = writeMessage(conn, req.Question, "human", ""); err != nil {
-			log.Error("writeMessage", "err", err)
+			log.Error("writeMessage", tint.Err(err))
 			break
 		}
 		resID := "res-" + crand.Text()
 		err = writeMessage(conn, "thinking", "bot", resID)
 		if err != nil {
-			log.Error("writeMessage", "err", err)
+			log.Error("writeMessage", tint.Err(err))
 			break
 		}
 		time.Sleep(2 * time.Second) // pretend to be a busy LLM
 		msg := cannedResponses[rand.IntN(len(cannedResponses))]
 		err = writeMessage(conn, msg, "bot", resID)
 		if err != nil {
-			log.Error("writeMessage", "err", err)
+			log.Error("writeMessage", tint.Err(err))
 			break
 		}
 	}
@@ -193,7 +193,7 @@ func writeMessage(conn *websocket.Conn, message, source, resID string) error {
 func writeResponse(w http.ResponseWriter, templateFile string, templateName string, data map[string]any) {
 	text, err := render(templateFile, templateName, data)
 	if err != nil {
-		slog.Error("render failed", "err", err)
+		slog.Error("render failed", tint.Err(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
