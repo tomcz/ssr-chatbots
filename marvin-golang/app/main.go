@@ -216,13 +216,6 @@ func writeResponse(w http.ResponseWriter, templateFile string, templateName stri
 	fmt.Fprint(w, text)
 }
 
-// no need to create a new buffer for every template render
-var bufPool = sync.Pool{
-	New: func() any {
-		return new(bytes.Buffer)
-	},
-}
-
 func render(templateFile string, templateName string, data map[string]any) (string, error) {
 	if data == nil {
 		data = make(map[string]any)
@@ -234,13 +227,8 @@ func render(templateFile string, templateName string, data map[string]any) (stri
 		return "", err
 	}
 
-	buf := bufPool.Get().(*bytes.Buffer)
-	defer func() {
-		buf.Reset()
-		bufPool.Put(buf)
-	}()
-
-	err = tmpl.ExecuteTemplate(buf, templateName, data)
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, templateName, data)
 	if err != nil {
 		return "", fmt.Errorf("%s exec %q error: %w", templateFile, templateName, err)
 	}
