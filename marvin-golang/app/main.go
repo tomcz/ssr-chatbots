@@ -29,7 +29,11 @@ import (
 var commit string
 
 func main() {
-	opts := &tint.Options{Level: slog.LevelInfo, TimeFormat: time.DateTime}
+	opts := &tint.Options{
+		Level:       slog.LevelInfo,
+		TimeFormat:  time.DateTime,
+		ReplaceAttr: highlightErrors,
+	}
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, opts)))
 
 	listenAddr := os.Getenv("LISTEN_ADDR")
@@ -37,9 +41,18 @@ func main() {
 		listenAddr = "127.0.0.1:3000"
 	}
 	if err := runServer(listenAddr, newHandler()); err != nil {
-		slog.Error("server failed", tint.Err(err))
+		slog.Error("server failed", "error", err)
 		os.Exit(1)
 	}
+}
+
+func highlightErrors(_ []string, attr slog.Attr) slog.Attr {
+	if attr.Value.Kind() == slog.KindAny {
+		if _, ok := attr.Value.Any().(error); ok {
+			return tint.Attr(9, attr)
+		}
+	}
+	return attr
 }
 
 func runServer(listenAddr string, handler http.Handler) error {
@@ -125,14 +138,14 @@ func chat(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error("ws.Upgrade", tint.Err(err))
+		log.Error("ws.Upgrade", "error", err)
 		return
 	}
 	defer conn.Close()
 
 	err = writeMessage(conn, "Hello, I am Marvin.", "bot", "")
 	if err != nil {
-		log.Error("writeMessage", tint.Err(err))
+		log.Error("writeMessage", "error", err)
 		return
 	}
 
@@ -140,27 +153,27 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		var req chatInput
 		if err = conn.ReadJSON(&req); err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				log.Info("stopping chat", tint.Err(err))
+				log.Info("stopping chat", "error", err)
 				break
 			}
-			log.Error("ws.ReadJSON", tint.Err(err))
+			log.Error("ws.ReadJSON", "error", err)
 			break
 		}
 		if err = writeMessage(conn, req.Question, "human", ""); err != nil {
-			log.Error("writeMessage", tint.Err(err))
+			log.Error("writeMessage", "error", err)
 			break
 		}
 		resID := "res-" + crand.Text()
 		err = writeMessage(conn, "thinking", "bot", resID)
 		if err != nil {
-			log.Error("writeMessage", tint.Err(err))
+			log.Error("writeMessage", "error", err)
 			break
 		}
 		time.Sleep(2 * time.Second) // pretend to be a busy LLM
 		msg := cannedResponses[rand.IntN(len(cannedResponses))]
 		err = writeMessage(conn, msg, "bot", resID)
 		if err != nil {
-			log.Error("writeMessage", tint.Err(err))
+			log.Error("writeMessage", "error", err)
 			break
 		}
 	}
@@ -193,7 +206,7 @@ func writeMessage(conn *websocket.Conn, message, source, resID string) error {
 func writeResponse(w http.ResponseWriter, templateFile string, templateName string, data map[string]any) {
 	text, err := render(templateFile, templateName, data)
 	if err != nil {
-		slog.Error("render failed", tint.Err(err))
+		slog.Error("render failed", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
