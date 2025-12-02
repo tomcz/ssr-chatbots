@@ -78,11 +78,14 @@ func newHandler() http.Handler {
 }
 
 func staticCacheControl(next http.Handler) http.Handler {
+	// hush goland, this is true for prod builds
+	//goland:noinspection GoBoolExpressions
+	if static.Embedded {
+		return next
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !static.Embedded {
-			// don't cache local assets so we can work on them easily
-			w.Header().Set("Cache-Control", "no-store")
-		}
+		// don't cache file assets so we can work on them easily
+		w.Header().Set("Cache-Control", "no-store")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -235,7 +238,7 @@ func render(templateFile string, templateName string, data map[string]any) (stri
 var tmplCache sync.Map
 
 func readTemplate(templateFile string) (*template.Template, error) {
-	// nope goland, this is true for prod builds
+	// hush goland, this is true for prod builds
 	//goland:noinspection GoBoolExpressions
 	if templates.Embedded {
 		if value, found := tmplCache.Load(templateFile); found {
@@ -259,7 +262,7 @@ func readTemplate(templateFile string) (*template.Template, error) {
 		return nil, fmt.Errorf("%s parse error: %w", templateFile, err)
 	}
 
-	// nope goland, this is true for prod builds
+	// hush goland, this is true for prod builds
 	//goland:noinspection GoBoolExpressions
 	if templates.Embedded {
 		tmplCache.Store(templateFile, tmpl)
