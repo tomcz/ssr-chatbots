@@ -69,14 +69,11 @@ class ChatApp:
 
 
 class StaticCacheControl(BaseHTTPMiddleware):
-    def __init__(self, app, is_dev):
-        super().__init__(app)
-        self.is_dev = is_dev
+    """Don't cache static assets so we can work on them easily"""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
-        if self.is_dev and request.url.path.startswith("/static/"):
-            # don't cache dev assets so we can work on them easily
+        if request.url.path.startswith("/static/"):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -91,7 +88,8 @@ def make_app():
         Mount(f"/static/{build_version}", StaticFiles(directory="static")),
         Mount("/shared", StaticFiles(directory="shared")),
     ]
-    middleware = [
-        Middleware(StaticCacheControl, is_dev=is_dev),
-    ]
-    return Starlette(routes=routes, middleware=middleware)
+    if is_dev:
+        middleware = [Middleware(StaticCacheControl)]
+        return Starlette(routes=routes, middleware=middleware)
+    else:
+        return Starlette(routes=routes)
