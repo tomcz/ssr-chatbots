@@ -80,25 +80,27 @@ func runServer(listenAddr string, handler http.Handler) error {
 	return err
 }
 
+// hush goland, static.Embedded is true for prod builds
+//goland:noinspection GoBoolExpressions
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/{$}", index)
 	mux.HandleFunc("/ws/chat", chat)
 	prefix := fmt.Sprintf("/static/%s/", commit)
-	mux.Handle("/static/", staticCacheControl(http.StripPrefix(prefix, http.FileServer(static.FS))))
-	mux.Handle("/shared/", http.StripPrefix("/shared/", http.FileServer(shared.FS)))
+	mux.Handle("/static/", staticCacheControl(static.Embedded, http.StripPrefix(prefix, http.FileServer(static.FS))))
+	mux.Handle("/shared/", staticCacheControl(true, http.StripPrefix("/shared/", http.FileServer(shared.FS))))
 	return mux
 }
 
-func staticCacheControl(next http.Handler) http.Handler {
-	// hush goland, this is true for prod builds
-	//goland:noinspection GoBoolExpressions
-	if static.Embedded {
-		return next
-	}
+func staticCacheControl(embedded bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// don't cache file assets so we can work on them easily
-		w.Header().Set("Cache-Control", "no-store")
+		if embedded {
+			// embedded content can be cached by the browser for 10 minutes
+			w.Header().Set("Cache-Control", "private, max-age=600")
+		} else {
+			// don't cache files so we can work on them easily
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
