@@ -20,7 +20,6 @@ import (
 	"github.com/lmittmann/tint"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/tomcz/ssr-chatbots/marvin-golang/shared"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
 )
@@ -80,21 +79,18 @@ func runServer(listenAddr string, handler http.Handler) error {
 	return err
 }
 
-// hush goland, static.Embedded is true for prod builds
-//goland:noinspection GoBoolExpressions
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/{$}", index)
 	mux.HandleFunc("/ws/chat", chat)
 	prefix := fmt.Sprintf("/static/%s/", commit)
-	mux.Handle("/static/", staticCacheControl(static.Embedded, http.StripPrefix(prefix, http.FileServer(static.FS))))
-	mux.Handle("/shared/", staticCacheControl(true, http.StripPrefix("/shared/", http.FileServer(shared.FS))))
+	mux.Handle("/static/", staticCacheControl(http.StripPrefix(prefix, http.FileServer(static.FS))))
 	return mux
 }
 
-func staticCacheControl(embedded bool, next http.Handler) http.Handler {
+func staticCacheControl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if embedded {
+		if static.Embedded {
 			// embedded content can be cached by the browser for 10 minutes
 			w.Header().Set("Cache-Control", "private, max-age=600")
 		} else {

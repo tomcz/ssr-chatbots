@@ -4,10 +4,7 @@ import secrets
 
 from jinja2 import Environment, FileSystemLoader
 from starlette.applications import Starlette
-from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -68,16 +65,6 @@ class ChatApp:
         await socket.send_text(rendered)
 
 
-class StaticCacheControl(BaseHTTPMiddleware):
-    """Don't cache static assets so we can work on them easily"""
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        response = await call_next(request)
-        if request.url.path.startswith("/static/"):
-            response.headers["Cache-Control"] = "no-store"
-        return response
-
-
 def make_app():
     is_dev = os.getenv("ENV", "dev").lower() in ["dev", "development"]
     build_version = os.getenv("BUILD_VERSION", "local")
@@ -86,10 +73,5 @@ def make_app():
         Route("/", chat.index),
         WebSocketRoute("/ws/chat", chat.websocket_endpoint),
         Mount(f"/static/{build_version}", StaticFiles(directory="static")),
-        Mount("/shared", StaticFiles(directory="shared")),
     ]
-    if is_dev:
-        middleware = [Middleware(StaticCacheControl)]
-        return Starlette(routes=routes, middleware=middleware)
-    else:
-        return Starlette(routes=routes)
+    return Starlette(routes=routes)

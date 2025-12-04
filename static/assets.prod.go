@@ -9,6 +9,7 @@ import (
 
 //go:embed *.js
 //go:embed *.css
+//go:embed lib/*
 var content embed.FS
 
 var Embedded = true
