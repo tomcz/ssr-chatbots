@@ -33,8 +33,10 @@ build-prod: target
 
 .PHONY: dev
 dev: build-dev
+	@echo ">>> Running in development mode with static asset and template reloading."
 	./target/chatbot
 
 .PHONY: run
 run: build-prod
+	@echo ">>> Running in production mode without static asset or template reloading."
 	./target/chatbot
