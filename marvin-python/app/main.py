@@ -4,10 +4,13 @@ import secrets
 
 from jinja2 import Environment, FileSystemLoader
 from starlette.applications import Starlette
+from starlette.datastructures import MutableHeaders
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 canned_responses = [
@@ -65,13 +68,33 @@ class ChatApp:
         await socket.send_text(rendered)
 
 
+class CacheControlMiddleware:
+    def __init__(self, app: ASGIApp, is_dev: bool):
+        self.app = app
+        self.is_dev = is_dev
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_wrapper(message: Message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                cache_control = "no-store" if self.is_dev else "private, max-age=600"
+                headers["Cache-Control"] = cache_control
+            await send(message)
+
+        return await self.app(scope, receive, send_wrapper)
+
+
 def make_app():
     is_dev = os.getenv("ENV", "dev").lower() in ["dev", "development"]
+    static_middleware = [Middleware(CacheControlMiddleware, is_dev=is_dev)]
     build_version = os.getenv("BUILD_VERSION", "local")
     chat = ChatApp(is_dev, build_version)
     routes = [
         Route("/", chat.index),
         WebSocketRoute("/ws/chat", chat.websocket_endpoint),
-        Mount(f"/static/{build_version}", StaticFiles(directory="static")),
+        Mount(f"/static/{build_version}", StaticFiles(directory="static"), middleware=static_middleware),
     ]
     return Starlette(routes=routes)
