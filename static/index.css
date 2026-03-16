@@ -60,13 +60,14 @@ h1 {
 }
 
 .bot-message .message-text {
-  background: #f4f4f4;
+  color: black;
+  background: #FF9500;
   border-radius: 0 10px 10px 10px;
 }
 
 .human-message .message-text {
-  background: #0172adff;
-  color: #ffffff;
+  background: #3C71F7;
+  color: white;
   border-radius: 10px 0 10px 10px;
 }
 
