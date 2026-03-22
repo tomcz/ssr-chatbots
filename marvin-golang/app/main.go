@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -55,7 +56,7 @@ func highlightErrors(_ []string, attr slog.Attr) slog.Attr {
 }
 
 func runServer(listenAddr string, handler http.Handler) error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	server := &http.Server{Addr: listenAddr, Handler: handler}
