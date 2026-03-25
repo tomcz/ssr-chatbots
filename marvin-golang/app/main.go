@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	crand "crypto/rand"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -19,7 +18,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/lmittmann/tint"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
@@ -56,28 +54,30 @@ func highlightErrors(_ []string, attr slog.Attr) slog.Attr {
 }
 
 func runServer(listenAddr string, handler http.Handler) error {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	server := &http.Server{Addr: listenAddr, Handler: handler}
 
-	group, ctx := errgroup.WithContext(ctx)
-	group.Go(func() error {
-		slog.Info("starting server", "addr", listenAddr)
-		return server.ListenAndServe()
-	})
-	group.Go(func() error {
-		<-ctx.Done()
-		slog.Info("stopping server")
-		timeout, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var fail error
+	go func() {
 		defer cancel()
-		return server.Shutdown(timeout)
-	})
-	err := group.Wait()
-	if errors.Is(err, http.ErrServerClosed) {
-		return nil
+		slog.Info("starting server", "addr", listenAddr)
+		fail = server.ListenAndServe()
+	}()
+
+	select {
+	case <-ctx.Done():
+		// server failed to start
+		return fail
+	case <-sigint:
+		slog.Info("stopping server")
+		wait, stopWaiting := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		err := server.Shutdown(wait)
+		stopWaiting()
+		return err
 	}
-	return err
 }
 
 func newHandler() http.Handler {
