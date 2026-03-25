@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/lmittmann/tint"
 
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
@@ -27,13 +26,6 @@ import (
 var commit string
 
 func main() {
-	opts := &tint.Options{
-		Level:       slog.LevelInfo,
-		TimeFormat:  time.DateTime,
-		ReplaceAttr: highlightErrors,
-	}
-	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, opts)))
-
 	listenAddr := os.Getenv("LISTEN_ADDR")
 	if listenAddr == "" {
 		listenAddr = "127.0.0.1:3000"
@@ -42,15 +34,6 @@ func main() {
 		slog.Error("server failed", "error", err)
 		os.Exit(1)
 	}
-}
-
-func highlightErrors(_ []string, attr slog.Attr) slog.Attr {
-	if attr.Value.Kind() == slog.KindAny {
-		if _, ok := attr.Value.Any().(error); ok {
-			return tint.Attr(9, attr)
-		}
-	}
-	return attr
 }
 
 func runServer(listenAddr string, handler http.Handler) error {
