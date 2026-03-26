@@ -39,20 +39,20 @@ func main() {
 func runServer(listenAddr string, handler http.Handler) error {
 	server := &http.Server{Addr: listenAddr, Handler: handler}
 
+	done := make(chan int)
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
-	ctx, cancel := context.WithCancel(context.Background())
 
 	var fail error
 	go func() {
-		defer cancel()
+		defer close(done)
 		slog.Info("starting server", "addr", listenAddr)
 		fail = server.ListenAndServe()
 	}()
 
 	select {
-	case <-ctx.Done():
-		// server failed to start
+	case <-done:
+		// server failed
 		return fail
 	case <-sigint:
 		slog.Info("stopping server")
