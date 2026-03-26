@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	crand "crypto/rand"
 	"fmt"
 	"html/template"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/tomcz/gotools/quiet"
 
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
@@ -52,14 +52,11 @@ func runServer(listenAddr string, handler http.Handler) error {
 
 	select {
 	case <-done:
-		// server failed
-		return fail
+		return fail // server failed
 	case <-sigint:
 		slog.Info("stopping server")
-		wait, stopWaiting := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		err := server.Shutdown(wait)
-		stopWaiting()
-		return err
+		quiet.CloseWithTimeout(server.Shutdown, 100*time.Millisecond)
+		return nil
 	}
 }
 
