@@ -4,5 +4,7 @@ go 1.26
 
 require (
 	github.com/gorilla/websocket v1.5.3
-	github.com/tomcz/gotools v0.13.1
+	github.com/tomcz/gotools v0.14.0
 )
+
+require golang.org/x/sync v0.20.0 // indirect

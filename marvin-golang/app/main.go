@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	crand "crypto/rand"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,13 +11,11 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/tomcz/gotools/quiet"
+	"github.com/tomcz/gotools/runner"
 
 	"github.com/tomcz/ssr-chatbots/marvin-golang/static"
 	"github.com/tomcz/ssr-chatbots/marvin-golang/templates"
@@ -38,26 +37,17 @@ func main() {
 
 func runServer(listenAddr string, handler http.Handler) error {
 	server := &http.Server{Addr: listenAddr, Handler: handler}
+	slog.Info("starting server", "addr", listenAddr)
 
-	done := make(chan int)
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
+	app := runner.New()
+	app.CleanupTimeout(server.Shutdown, 100*time.Millisecond)
+	app.Run(server.ListenAndServe)
 
-	var fail error
-	go func() {
-		defer close(done)
-		slog.Info("starting server", "addr", listenAddr)
-		fail = server.ListenAndServe()
-	}()
-
-	select {
-	case <-done:
-		return fail // server failed
-	case <-sigint:
-		slog.Info("stopping server")
-		quiet.CloseWithTimeout(server.Shutdown, 100*time.Millisecond)
+	err := app.Wait()
+	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
+	return err
 }
 
 func newHandler() http.Handler {
